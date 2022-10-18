@@ -5,11 +5,9 @@
 select empno,ename,job,mgr,hiredate,comm,sal,deptno from emp; 
 select * from emp;
 
-
 -- 부분컬럼 데이터 조회
 select empno,ename,sal from emp;
 select deptno from emp;
-
 
 -- 중복 데이터 제거 
 select DISTINCT deptno from emp;
@@ -24,9 +22,8 @@ select DISTINCT job from emp;
 select ename as 사원이름 ,sal as 월급 ,sal * 12 + nvl(comm,0)as 연봉 ,comm as 상여금 from emp;
 select nvl(comm+1,5) from emp; 
 
--- 데이터 정렬 
 
-
+--------------------------------------------------------------------------------------------------
 -- 데이터 정렬 
 -- order by 컬럼명(정렬 기준이 되는 값) asc / desc 
 -- 오름차순은 생략가능 오름차순이 디폴트
@@ -84,6 +81,7 @@ select * from emp where comm is null;
 select * from emp where comm is not null;
 
 
+--------------------------------------------------------------------------------------------------
 -- 집합 연산자 : 합집합 , 교집합 , 차집합 
 -- 집합 연산자를 사용하기 위해서는 두개의 select 문을 사용한다 , 컬럼의 개수가 동일해야한다. , 컬럼의 타입이 같아야한다. , 컬럼의 이름은 상관없다 .  
 -- union : 합집합 
@@ -102,4 +100,68 @@ select empno , ename , sal , deptno from emp intersect
 select empno , ename , sal , deptno from emp where deptno = 10;
 
 
+
+--------------------------------------------------------------------------------------------------
+-- upper('문자열 or 컬럼명')  괄호 안 문자 데이터를 모두 대문자로 변환 
+-- lower ('문자열 or 컬럼명') : 괄호 안 데이터를 모두 소문자로 변환 
+select 'Welcome',upper('Welcome') from dual; 
+select lower(ename),upper(ename) from emp;
+select * from emp where ename = 'FORD'; --> select * from emp where lower(ename) = 'ford'
+
+-- length : 문자열의 길이를 리턴 
+select ename,length(ename) from emp;
+select 'Welcome to Oracle',length('Welcome to Oracle') from dual;
+
+-- substr ( '문자열' , 시작 위치 , 추출 길이 )  : 문자열 자르기  : 시작위치만 적으면 시작위치부터 마지막 문자까지 추출 
+select 'Welcome to Oracle',substr('Welcome to Oracle', 5 , 8) from dual;
+select 'Welcome to Oracle',substr('Welcome to Oracle', -5,8) from dual;
+
+-- instr('문자열' , '찾는 문자' , 시작위치 , 찾는 문자의 순서 ) : 문자 찾기 
+select instr('Welcome to Oracle','o')from dual;
+select instr('Welcome to Oracle','o',3)from dual;
+select instr('Welcome to Oracle','e',3,2)as instr from dual;
+
+-- replace( '문자열', '찾는 문자열' , ' 바꿀 문자열 ' ) : 위치 변경 
+select 'Welcome to Oracle',REPLACE('Welcome to Oracle','to','of') from dual;
+-- lpad ('문자열' , 공간을 확보할 수 , '대체 문자' ) 
+select 'oracle',lpad('oracle',10,'#'),rpad('oracle',10,'*'),rpad('oracle',10) from dual;
+select rpad('990101-' ,14 ,'*') from dual;
+
+-- concat : 문자열 연결 
+select concat(empno,ename), empno || '' || ename from emp;
+
+
+--------------------------------------------------------------------------------------------------
+-- 숫자 함수 
+-- round (숫자 , 자리수 ) : 반올림 자리수를 정해주지않으면 소수점 첫째자리까지 
+select  round(1234.5678),
+        round(1234.5678,0),
+        round(1234.5678,1),
+        round(1234.5678,2),
+        round(1234.5678,-1), -- (-4-3-2-1.1234) 
+        round(1234.5678,-2),
+        round(1234.5678,-3)
+from dual;
+
+-- trunc (숫자 , 자리수 ) : 지정한 자리수 외의 숫자 버리기  자리수를 정해주지않으면 소수점 첫째자리까지
+select  trunc(1234.5678),
+        trunc(1234.5678,0),
+        trunc(1234.5678,1),
+        trunc(1234.5678,2),
+        trunc(1234.5678,3),
+        trunc(1234.5678,-1),
+        trunc(1234.5678,-2),
+        trunc(1234.5678,-3)
+from dual;
+
+
+-- ceil : 자신보다 큰 가장 가까운 정수 
+-- floor : 자신보다 작은 가장 가까운 정수 
+select ceil(3.14) , floor(3.14) , ceil(-3.14),  floor(-3.14)
+from dual;
+
+-- mod : 나머지 구하기
+select mod(5,2), mod(10,4) from dual;
+
+select * from emp where mod(empno,2) = 0;
 
