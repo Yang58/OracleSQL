@@ -207,16 +207,13 @@ select sal, to_char(sal,'L999,999') from emp;
 --to_number : 문자를 숫자로 
 select '20000' - 10000 from dual;
 select '20000' - '10000' from dual;
-
-
-
-
 select '20,000' - '10,000' from dual; -- 실행 X 형변환 필요
 select to_number('20,000','999,999') - to_number('5,000' , '999,999') from dual; 
 
 -- to_date : 문자를 날짜로 
 select to_date('20221019','YY-MM-DD') from dual;
 select * from emp where hiredate < to_date('19820101','YY-MM-DD');
+select to_date(hiredate,'YY/MM/DD') from emp ;
 
 -- null 데이터 처리  nvl(null, 바꾸고싶은 데이터)  
 --                   -> nvl은 null 데이터의 타입과 같은 타입으로 변경 
@@ -293,3 +290,143 @@ select deptno, job , avg(sal) from emp group by deptno, job order by deptno , jo
 select deptno , avg(sal) from emp group by deptno having avg(sal) > 2000;
 -- group by 와 having의 조건문이 실행되기전에 where의 조건이 먼저 실행된다! 
 select deptno , trunc(avg(sal),0) from emp where deptno != 10 group by deptno having avg(sal) > 2000;
+
+
+
+--------------------------------------------------------------------------------------------------
+-- 조인(Join) 
+-- 2개 이상의 테이블에서 데이터를 조회
+-- from절에 두개 이상의 테이블을 작성한다. 
+-- where에 조인 조건을 작성한다.
+-- cross join (where 절 없이 조인)
+-- equi join (where 등가연산자: =)
+-- non equi join (where 범위연산자: and , or )
+-- self join  (where 하나의 테이블을 사용한다. )
+
+--등가 비교를 할떄 등가비교가 되지않는 데이터는 누락된다 . 그럴떄 외부 조인(out join을 사용) 
+-- out join ( 등가시 누락되는 데이터를 같이 조회할수있다. )
+
+select ename, job, emp.deptno, dept.dname, loc -- 양쪽 테이블에 같은 이름의 컬럼이 존재 시 앞에 (테이블명.)을 붙여 구분해 줌
+from emp,dept
+where emp.deptno = dept.deptno; -- 조인 조건구문(등가조인)
+
+select ename, job, e.deptno, d.dname, loc
+from emp e,dept d  -- 테이블에 별칭 부여(별칭을 부여하면 원래 테이블 이름을 사용할 수 없다 - 오류발생) , (as는 컬럼에 별칭 부여 혼동 no)
+where e.deptno = d.deptno
+and sal >= 3000;
+
+select ename, sal, grade , losal, hisal 
+from emp e, salgrade s
+where e.sal between s.losal and s.hisal;
+--where e.sal >= s.losal and e.sal<= s.hisal;
+
+-- 테이블의 조건은 and로 연결 join할때 테이블은 하나 이상의 테이블과 관계를 맺어야한다 조건은 관계를 맺고있는 테이블당 조건식 작성  
+-- 3개의 테이블이 필요                              emp , dept , salgrade  
+select empno,ename,sal, d.deptno,dname,grade from emp e ,dept d , salgrade s
+where e.deptno = d.deptno 
+and e.sal between s.losal and s.hisal;
+
+-- self join
+-- (하나의 테이블안에 사용할 데이터가 2번 있을때 같은 테이블을 두번 사용해야할때  
+select e.empno, e.ename,e.mgr, m.ename ,m.empno from emp e, emp m --  반드시 테이블 별칭을 사용 
+where e.mgr = m.empno ;
+
+select work.deptno, work.ename , friend.ename
+from emp work , emp friend 
+where work.deptno = friend.deptno 
+and work.ename = 'SCOTT' 
+and friend.ename != 'SCOTT';
+
+--out join : where 절에 누락되는 데이터가 있을때 누락 데이터를 조회하기 위해 // where 누락 데이터가 있는 테이블명(+) 
+select e.empno, e.ename,e.mgr, m.ename ,m.empno from emp e, emp m --  반드시 테이블 별칭을 사용 
+where e.mgr = m.empno(+); -- out join의 사용 방법  ( 데이터가 없는 테이블의 (+)를 붙여 사용 
+
+select ename, sal, d.deptno ,d.dname from emp e , dept d
+where e.deptno(+) = d.deptno;
+
+--------------------------------------------------------------------------------------------------
+-- ANSI - JOIN ( 표준 조인 방식 ) : 툴마다 조인방식이 다름 -> 조인 방식을 통일  
+-- inner join : equal , non equal , self join  표현 가능 
+-- outer join == ( (+) ) [ left or right or full ] outer join (셋중 하나 반드시 붙여야함 ) 
+-- cross join natural join 은 거의 사용하지 않음 
+
+--                             (,) 대신 inner join 사용  (where) 대신 on 사용
+select ename , sal ,dname , loc 
+from emp inner join dept 
+on emp.deptno = dept.deptno;
+--using(deptno)  ==  on emp.deptno = dept.deptno on 은 join조건 where 은 일반 조건 
+
+--using(deptno)  =  on emp.deptno = dept.deptno // on 은 join조건 where 은 추가적인 조건 
+select ename , sal ,dname , loc 
+from emp inner join dept 
+using(deptno) -- 컬럼의 이름이 동일한 경우에만 사용가능 
+where ename = 'SCOTT'; -- join조건 외에 추가 조건  
+
+-- self join -> ANSI-JOIN 방식 
+select e.empno , e.ename , e.mgr , m.ename 
+from emp e inner join emp m 
+on e.mgr = m.empno;
+
+select e.empno, e.ename ,e.sal , s.grade 
+from emp e inner join salgrade s
+on e.sal between s.losal and s.hisal;
+
+-- out join -> outer join 
+select e.empno , e.ename , e.mgr , m.ename 
+from emp e left outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
+on e.mgr = m.empno;
+
+-- 3개의 테이블을 사용할때 안시조인 
+select empno,ename,sal, d.deptno,dname,grade
+from emp e inner join dept d 
+on e.deptno = d.deptno 
+inner join salgrade s
+on e.sal between s.losal and s.hisal;
+
+
+select ename , sal , d.deptno, d.dname 
+from emp e right outer join dept d
+on e.deptno = d.deptno order by e.deptno;
+
+--------------------------------------------------------------------------------------------------
+-- 서브 쿼리 
+-- select 문의 중첩을 서브쿼리라고 한다.  어디서든 중첩 가능 
+-- select (select * ) 일반 서브 쿼리
+-- from (select * ) 인라인뷰
+-- where (select * )서브쿼리  
+
+select deptno from emp where ename = 'SCOTT';
+select dname from dept where deptno = 20;
+-- 두 문장을 합치면 서브쿼리  
+-- 단일행 서브쿼리 비교 연산자 사용 가능 / 다중행 서브쿼리 기본 연산자 사용 불가 (연산자 함수 제공)
+--[  메인 쿼리                           (  서브 쿼리                                  ) ] 
+select dname from dept where deptno = ( select deptno from emp where ename = 'SCOTT' );
+select ename , sal from emp where sal = ( select max(sal) from emp );
+select ename , deptno from emp where deptno = ( select deptno from dept where loc = 'DALLAS');
+select ename , sal from emp where mgr = ( select empno from emp where ename = 'KING');
+
+-- 다중행 서브쿼리 in( ) : 메인쿼리의 데이터가 서브쿼리의 결과 중 하나라도 일치한 데이터가 있다면 true 
+-- 결과중에 하나만 만족하면 된다. 
+select * from emp where sal in(5000,3000,2850);
+select * from emp where sal in 
+    ( select max(sal) from emp group by deptno) ;
+    
+-- any( ), some( ) : 메인쿼리의 조건식을 만족하는 서브쿼리의 결과가 하나 이상이면 true 
+-- any 는 부등호와 같이 사용 /   결과중에 가장 작은값보다 크면 된다 
+select * from emp where sal < any 
+    ( select max(sal) from emp group by deptno) 
+    order by sal;
+    select max(sal) from emp group by deptno;
+select * from emp where sal > any 
+    ( select max(sal) from emp group by deptno) 
+    order by sal;
+
+
+--all ( ) : 메인쿼리의 조건식을 서브쿼리의 결과가 모두 만족하면 true 
+-- 결과 중에 가장 큰 값 보다 크면 된다 .
+select ename , sal , deptno
+from emp where sal > all
+    (select sal from emp where deptno = 30);
+    
+-- 다중열 서브쿼리 
+select * from emp where (deptno,sal) in ( select deptno , min(sal) from emp group by deptno);
