@@ -430,3 +430,253 @@ from emp where sal > all
     
 -- 다중열 서브쿼리 
 select * from emp where (deptno,sal) in ( select deptno , min(sal) from emp group by deptno);
+
+
+
+--------------------------------------------------------------------------------------------------
+-- DML ( 데이터 조작어 ) : insert , update , delete 
+-- insert : 테이블에 데이터 삽입 
+-- Ex) insert into 테이블명 (컬럼명,  ... ) values ( 값 , ....) -> 컬럼의 개수와 값의 개수 데이터 타입이 동일해야한다. (작성 순서대로 1대1 매칭되어 저장)
+
+create table dept_temp 
+as select * from dept;
+
+select * from dept_temp;
+insert into dept_temp (deptno , dname , loc ) -- 데이터 삽입
+values ( 50,'DATABASE', 'SEOUL');
+
+insert into dept_temp -- 컬럼 생략 가능 ( 생략하게되면 모든 컬럼에 데이터를 저장하겠다는 의미 ) 
+values ( 70,'HTML', 'SEOUL');
+
+insert into dept_temp (deptno , dname ) -- 컬럼이 3개인 테이블에 데이터를 2개만 삽입하게되면 빈 컬럼에는 자동으로 null데이터가 삽입된다. 
+values ( 60,'JSP' );
+
+insert into dept_temp  -- 데이터 삽입
+values ( 80,null, 'SEOUL');
+
+--테이블 생성 
+create table emp_temp
+as select * from emp
+where 1 != 1;
+
+select * from emp_temp;
+
+-- 테이블 삭제 
+drop table emp_temp;
+
+insert into emp_temp(empno, ename,job,mgr,hiredate,sal ,comm ,deptno)
+values (9999,'HONG','PRESIDENT',NULL,'2001/01/01',5000,1000,10);
+
+insert into emp_temp(empno, ename,job,mgr,hiredate,sal ,comm ,deptno)
+values (9999,'SIM','MANAGER',9999,sysdate,4000,null,30);
+
+-- update : 컬럼 내 데이터 수정 
+-- Ex) update 테이블명 set 컬럼명 = 값, 컬럼명2 = 값2 .... where 조건식 
+-- 조건절을 사용하지 않으면 해당 컬럼이 모두 변경 
+
+create table dept_temp2 as select * from dept;
+
+select * from dept_temp2;
+
+update dept_temp2 set loc = 'SEOUL2';
+
+drop table dept_temp2;
+
+update dept_temp2 set dname = 'DATABASE' , loc = 'SEOUL' where deptno = 40;
+
+
+-- delete : 데이터 삭제 
+-- Ex) delete from 테이블명  where 조건식 ( 조건절을 사용하지 않으면 모든 데이터가 삭제됨 ) 
+
+drop table emp_temp2;
+create table emp_temp2 as select * from emp;
+
+select * from emp_temp2;
+-- 모든 데이터 삭제 
+delete from emp_temp2;
+
+delete from emp_temp2 where ename = 'SCOTT';
+
+
+
+--------------------------------------------------------------------------------------------------
+--트렌젝션 ( Transaction Control Language) TCL : 트랜잭션을 제어하기 위해 사용하는 명령어 -> 
+-- ALL OR NOTHING ( 데이터의 모두 실행 또는 모두 취소 ) 
+-- commit : 데이터의 실행 ( 테이블에 데이터 반영 ) -                create 구문을 사용해 객체생성할때 자동으로 커밋 발생 
+-- rollback : 데이터 변경 취소 (테이블에 데이터를 저장하지 않음 )     천재지변, 전기 갑작스런 상황이 생겼을때 자동으로 롤백 발생 
+-- savepoint : 
+
+drop table dept01;
+create table dept01 as select * from dept;
+select * from dept01;
+-- 완전한 삭제는 아님 !! 내부적으로 안보이게 처리 외부에서 접속했을때는 데이터가 보임 
+delete from dept01;
+     commit;   -- 커밋을 하게되면 완전한 삭제가 이루어짐 
+--      |  
+--      |         롤백이 이루어지는 곳 ( 커밋의 시작 지점으로 이동 ) 
+--      |
+     rollback; -- 커밋이 이루어진 이후에는 롤백이 되지않음 
+
+-- 트랜잭션의 적용 유무 
+delete from dept01;      -- 롤백 가능 ( 커밋후에 외부의 데이터가 삭제됨 ) 
+truncate table dept01;   -- 롤백 불가 ( 자동으로 외부에서도 데이터 삭제가 이루어짐 ) : 데이터의 완전한 영구삭제 / 삭제와 동시에 커밋이 이루어짐  
+
+
+--------------------------------------------------------------------------------------------------
+--DDL 테이터 정의어 (Data Definition Language) : Table을 포함한 모든 객체를 생성 , 삭제 , 변경하는 명령어 
+-- create : 생성 
+-- alter  : 변경
+-- drop   : 삭제 
+
+--   create table 테이블 명(  // 테이블은 객체 
+--       컬럼명1 타입 ,       // 컬럼은 속성
+--       컬럼명2 타입 ,
+--       컬럼명3 타입 .... 
+--   );
+
+-- 테이블 만들기 
+create table emp_ddl (
+    empno number(4), -- 숫자의 자리수 
+    ename varchar2(10), -- 바이트 수 
+    job varchar2(9),
+    mgr number(4),
+    hiredate date,
+    sal number(7,2), -- 7자리중 5자리는 정수 2자리는 소수 표현
+    comm number(7,2),
+    deptno number(2)
+);
+
+select * from emp_ddl;
+
+insert into emp_ddl values (9999,'HONG','MANAGER',1111,sysdate,2000,null,10);
+
+create table dept_ddl as select * from dept; -- 테이블 복사 ( 기존 데이터의 보존 ) 백업
+
+select * from dept_ddl;
+create table dept_30 as select * from dept where deptno = 30;
+select * from dept_30;
+
+create table dept_m as select dname, loc from dept;
+select * from dept_m;
+
+create table dept_d as select * from dept 
+where 1 != 1 ; -- 테이블의 구조(컬럼명) 만 복사할떄 
+
+select * from dept_d;
+
+-- 테이블의 변경 ( 컬럼의 정보 수정 ) 
+-- 1. 새로운 컬럼 추가 2. 컬럼의 이름 변경 3. 자료형의 변경 , 컬럼의 삭제 
+-- add ,              rename ,            modify ,        drop 
+-- alter 
+create table emp_alter as select * from emp;
+select * from emp_alter;
+
+-- 1. 새로운 컬럼의 추가 
+alter table emp_alter 
+add address varchar2(100);
+
+-- 2. 컬럼의 이름 변경
+alter table emp_alter
+rename column address to addr;
+
+-- 3. 자료형의 변경 
+alter table emp_alter 
+modify empno number(10); -- 자료형의 크기를 줄이는 것은 불가! 늘리는 것만 가능 / 기존 자료형의 변경도 가능 
+
+-- 4. 컬럼의 삭제 
+alter table emp_alter 
+drop column addr;
+
+
+-- 테이블의 이름 변경 
+rename emp_alter to emp_rename;
+
+-- 테이블 삭제 
+drop table emp_rename;
+select * from emp_rename;
+
+
+--------------------------------------------------------------------------------------------------
+-- 데이터 사전 
+desc user_tables;
+
+select table_name
+from user_tables;
+
+select owner, table_name
+from all_tables;
+
+--------------------------------------------------------------------------------------------------
+-- index( 검색속도를 향상하기위해 사용하는 객체 )
+-- select  구문의 검색속도를 향상 시킨다. 
+-- 전체 레코드의 3% ~ 5% 정도를 검색할때 가장 빠름 
+-- index객체를 컬럼에 생성해서 사용한다 
+
+-- create index [index-name] on [table-name] ( [column-name] ) ;  = > [ ] 이름 
+
+create table emp01 
+as select * from emp;
+
+select * from emp01;
+
+insert into emp01 
+select * from emp01;
+
+insert into emp01(empno , ename) 
+values ( 1111, 'bts');
+
+select empno,ename from emp01 where ename ='bts';
+-- 인덱스 객체 생성 
+create index idx_emp01_ename on emp01(ename);
+-- 인덱스 객체의 삭제 
+drop index idx_emp01_ename;
+
+drop table emp01;
+select * from emp01;
+-- 테이블 삭제 후 원복 
+-- show recyclebin; -> 휴지통에 버려진 테이블의 정보를 볼수있다 
+-- flashback table 테이블명 to before drop; --> 휴지통에 버려진 테이블 복원 
+-- purge recyclebin; -- > 휴지통 비우기 
+show recyclebin; 
+flashback table emp01 to before drop; 
+
+
+--------------------------------------------------------------------------------------------------
+insert into emp values (1111 , 'aaa' , 'MANAGER' , 9999 , sysdate , 1000 , null , 50); -- 무결성 위배 
+
+-- 제약 조건 ( 무결성 ) : 잘못된 값이 데이터로 사용되는 것을 방지하는것 
+-- not null     : null 값이 들어올수 없다 .
+-- unique       : 같은 열에 같은 값이 들어올수 없다 . 중복 방지 단 null 데이터는 중복 허용 
+-- primary key  : not null 과 unique 의 특성을 둘다 가짐 단, 테이블당 하나만 쓸수있다.  
+-- foreign key  : 
+-- check        : 테이블 생성시 설정한 조건식을 만족하는 데이터만 입력할수 있다. 
+
+-- constraint : 제약 조건에 별칭 부여 ( constraint emp02_empno_pk : 테이블명_ 컬럼명_ 제약조건의 약자 )
+-- 오류 발생시 오류 내용을 알아보기 쉬움 
+create table emp02 ( 
+    empno number (4) constraint emp02_empno_pk primary key ,  
+    ename varchar2(10) constraint emp02_ename_nn not null,
+    job varchar2(9),
+    deptno number(2)
+);
+
+insert into emp02 
+values ( 1111, 'HONG', 'MANAMER' , 30);
+
+insert into emp02 
+values ( 2222, 'HONG', 'MANAMER' , 30);
+
+insert into emp02 
+values ( null, 'KIM', 'SALESMAN' , 20);
+
+insert into emp02 
+values ( 2222, 'OOG' , 'SALESMAN' , 20);
+
+select * from emp02;
+
+drop table emp02;
+
+
+
+
+
