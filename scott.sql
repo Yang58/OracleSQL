@@ -1,3 +1,4 @@
+
 -- DQL (질의어) : 데이터 조회할때 사용 
 
 -- select 컬럼명 from 테이블명;
@@ -442,6 +443,7 @@ create table dept_temp
 as select * from dept;
 
 select * from dept_temp;
+
 insert into dept_temp (deptno , dname , loc ) -- 데이터 삽입
 values ( 50,'DATABASE', 'SEOUL');
 
@@ -643,16 +645,20 @@ flashback table emp01 to before drop;
 
 --------------------------------------------------------------------------------------------------
 insert into emp values (1111 , 'aaa' , 'MANAGER' , 9999 , sysdate , 1000 , null , 50); -- 무결성 위배 
-
 -- 제약 조건 ( 무결성 ) : 잘못된 값이 데이터로 사용되는 것을 방지하는것 
 -- not null     : null 값이 들어올수 없다 .
 -- unique       : 같은 열에 같은 값이 들어올수 없다 . 중복 방지 단 null 데이터는 중복 허용 
--- primary key  : not null 과 unique 의 특성을 둘다 가짐 단, 테이블당 하나만 쓸수있다.  
--- foreign key  : 
+-- primary key  : not null 과 unique 의 특성을 둘다 가짐 단, 테이블당 하나만 쓸수있다.  (기본 키)
+-- foreign key  :   (외래 키 / 참조 키) 1 : n  관계 / 부모 컬럼 primary key - 자식 컬럼 foreign key 
+ --                 1. 부모와 자식의 관계를 가진 자식쪽 테이블 컬럼에 선언한다
+ --                 2. 부모 쪽 테이블의 컬럼은 primary key 또는 nuique 로 선언해야한다. 
+ --                 3. foreign key가 설정된 컬럼에는 null 데이터를 허용한다 
+ 
 -- check        : 테이블 생성시 설정한 조건식을 만족하는 데이터만 입력할수 있다. 
+-- dafault      
 
 -- constraint : 제약 조건에 별칭 부여 ( constraint emp02_empno_pk : 테이블명_ 컬럼명_ 제약조건의 약자 )
--- 오류 발생시 오류 내용을 알아보기 쉬움 
+-- 오류 발생시 오류 내용에 별칭이 출력됨  
 create table emp02 ( 
     empno number (4) constraint emp02_empno_pk primary key ,  
     ename varchar2(10) constraint emp02_ename_nn not null,
@@ -676,7 +682,233 @@ select * from emp02;
 
 drop table emp02;
 
+-- foreign key 
+create table dept07( -- 부모테이블
+    deptno number(2) constraint dept07_deptno_pk primary key,
+    dname varchar2(20)constraint dept07_dname_nn not null,
+    loc varchar2(20) constraint dept07_loc_nn not null
+);
 
+create table emp03 ( -- 자식테이블
+    empno number(4) constraint emp03_empno_pk primary key,
+    ename varchar2(9) constraint emp03_ename_nn not null,
+    job varchar(9),
+    deptno number(2) constraint emp03_deptno_fk references dept07(deptno)  -- foreign key 제약 조건 설정 방식 
+);
+
+
+-- 서브쿼리를 이용해 데이터 삽입 ( 부모 테이블 먼저 데이터 삽입 / 테이블 생성도 부모테이블 먼저 생성  )
+insert into dept07 
+select * from dept;
+select * from dept07;
+
+insert into emp03 
+select empno, ename , job , deptno 
+from emp;
+select * from emp03;
+
+insert into emp03 values (1111 , 'HONG' , 'MANAGER' , 50); 
+
+
+--check 
+create table emp04(
+    empno number(4) primary key,
+    ename varchar(10) not null,
+    sal number(7) constraint emp04_sal_ck check(sal between 500 and 5000),
+    gender varchar(2) constraint emp04_gender_ck check(gender in ('M','F'))
+);
+select * from emp04;
+
+insert into emp04
+values ( 2222,'JO',202,'M');
+insert into emp04
+values ( 3333,'JO',2000,'A');
+
+
+-- default :데이터를 넣을때 빈칸이면 자동으로 기본값으로 설정한 데이터를 넣어준다. 단 직접 null 로 지정해서 넣으면 null 데이터가 삽입된다 
+create table dept08(
+      deptno number(4) primary key,
+      dname varchar2(10) not null,
+      loc varchar(15) default 'SEOUL'
+);
+
+select * from dept08;
+
+insert into dept08 (deptno, dname ,loc)
+values( 30,'SALESMAN','BUSAN');
+
+-- 제약 조건의 설정 방식
+-- 1. 컬럼 레벨의 설정 방식 ( 위에서 사용하던 방식 ) 
+-- 2. 테이블 레벨의 설정 방식 ( not null 은 사용할수 없다. 컬럼 레벨의 방식에서만 사용 가능 )
+--      2.1 테이블 안에서 정의하는 방식
+--      2.2 alter 명령어 사용 방식
+
+create table emp05( -- 테이블 레벨의 제약 조건 설정 
+    empno number(4),
+    ename varchar2(20) constraint emp05_empno_nn not null,
+    job varchar2(10),
+    deptno number(20), 
+    
+    constraint emp05_empno_pk primary key(empno),
+    constraint emp05_job_uk unique(job),
+    constraint emp05_deptno_fk foreign key(deptno) references dept(deptno)
+);
+
+select * from emp05;
+
+insert into emp05 
+values( 1111 , 'HONG' , 'PERSIDENT' , '80');
+
+-- 복합키 ( 기본키를 두개의 컬럼이 사용하는 경우) 
+-- 복합키는 테이블 레벨의 방식으로만 지정할 수 있다. 
+
+create table member(
+    name varchar2(10),
+    address varchar2(30),
+    tel varchar2(10),
+    
+    constraint member_name_address_pk primary key ( name, address )
+);
+
+
+create table emp06 (
+    empno number(4),
+    ename varchar2(20),
+    job varchar2(10),
+    deptno number(20) 
+);
+select * from emp06;
+
+-- 테이블 생성 후에도 제약조건을 설정할 수 있다. ( alter 사용 ) 
+alter table emp06 
+add constraint emp06_empno_pk primary key(empno);
+
+alter table emp06 
+add constraint emp06_ename_fk foreign key(deptno) references dept(deptno);
+
+-- not null 은 변경의 개념 ( null -> not null) add 가 아닌 modify 사용  
+alter table emp06 
+modify job constraint emp06_job_nn not null;
+
+alter table emp06
+modify ename constraint emp06_ename_nn not null;
+
+-- 제약 조건 삭제  drop 제약 조건 명(constraint) or 제약 조건(key name : 제약 조건으로 설정 할 경우 테이블에 같은 제약조건이 모두 삭제된다 ) 
+alter table emp06 
+drop constraint emp06_empno_pk;
+
+select * from emp06;
+
+-- 부모 테이블과 자식 테이블의 생성 
+create table dept09( 
+    deptno number(2),
+    dname varchar(10),
+    loc varchar2(15)
+);
+alter table dept09 
+add constraint dept09_deptno_pk primary key(deptno);
+
+insert into dept09
+select * from dept;
+
+create table emp09 (
+    empno number(4),
+    ename varchar2(20),
+    job varchar2(10),
+    deptno number(20) 
+);
+alter table emp09 
+add constraint emp09_empno_pk primary key(empno);
+alter table emp09
+add constraint emp09_deptno_fk foreign key(deptno) references dept09(deptno);
+
+insert into emp09 
+select empno , ename , job , deptno from emp;
+
+
+-- 자식 테이블에서 사용중이므로 부모 테이블의 데이터는 지울수 없다 대신 제약 조건 비활성화 후 삭제 가능하다. 
+delete from dept09 
+where deptno = 10 ;
+
+alter table dept09 
+disable primary key cascade;  -- cascade : 계층 구조로 되어있는 모든 제약 조건을 비활성화 
+
+alter table dept09 
+drop primary key cascade; -- cascade : 자식 테이블의 foreign key 와 연결된 부모 테이블의 primary key 도 함께 삭제된다  
+
+select * from emp09 order by deptno;
+select * from dept09;
+
+
+
+
+--------------------------------------------------------------------------------------------------
+-- 뷰 : 가상 테이블 
+-- 객체 : table , index , view ( 객체는 create를 사용해 생성 ) 
+
+-- view 문법 
+-- create or replace view 뷰테이블명 ( 1.alias )
+-- as 
+-- 서브쿼리(select) 
+-- 2.with check option
+-- 3.with read only 
+-- 1, 2, 3 번은 선택 나머지는 필수 
+
+create table dept_copy as
+select * from dept;
+
+create table emp_copy as
+select * from emp;
+
+alter table emp_copy 
+add constraint empcopy_deptno_fk 
+foreign key(deptno) references dept(deptno);
+
+select * from emp_copy ;
+
+create or replace view emp_view30 
+as  
+select empno , ename , mgr , deptno -- 뷰에 보일 데이터 정리 
+from emp_copy where deptno = 30; -- 조건 설정 
+
+select * from emp_view30;
+
+delete from emp_copy where empno = 2222;
+
+insert into emp_view30 -- 원본 테이블에 데이터 저장 
+values (1111, 'HOHO', 7699 , 30);
+
+insert into emp_view30 (empno, ename, mgr) 
+values(3333,'hong' ,2000);
+
+insert into emp_copy (empno, ename, mgr, deptno) -- 제약 조건 위반 
+values(3334,'hong' ,2000 , 50 );
+
+-- 별칭을 부여하게되면 원래의 컬럼명을 사용할수 없다.
+create or replace view emp_view(사원번호, 사원명 , 상사번호 , 부서번호)
+as select empno, ename, mgr, deptno from emp_copy;
+
+select * from emp_view where 부서번호 = 20;
+
+-- 복합 뷰 
+create or replace view emp_dept_view 
+as
+select empno, ename , sal , e.deptno , dname , loc 
+from emp e inner join dept d 
+on e.deptno = d.deptno
+order by e.empno desc , deptno;
+
+select * from emp_dept_view;
+
+create or replace view sal_view
+as 
+select d.dname , min(e.sal) as min_sal, max(e.sal) as max_sal 
+from emp e right outer join dept d 
+on e.deptno = d.deptno
+group by d.dname;
+
+
+select * from sal_view o;
 
 
 
