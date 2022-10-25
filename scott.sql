@@ -595,6 +595,7 @@ rename emp_alter to emp_rename;
 
 -- 테이블 삭제 
 drop table emp_rename;
+
 select * from emp_rename;
 
 
@@ -909,6 +910,165 @@ group by d.dname;
 
 
 select * from sal_view o;
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+-- option 
+-- 1.with check option
+create or replace view view_chk30
+as
+select empno , ename ,sal ,comm ,deptno
+from emp_copy
+where deptno = 30 with check option; -- 현재 설정된 조건절의 컬럼을 수정하지 못하게 한다. 
+
+select * from view_chk30;
+
+update view_chk30 set deptno = 10; -- 뷰를 생성할떄 option을 걸어놔서 컬럼을 수정할수 없음 
 
 
+-- 2.with read only 
+create or replace view view_read30
+as
+select empno , ename ,sal ,comm ,deptno
+from emp_copy
+where deptno = 30 with read only ; -- 모든 컬럼에 대한 수정이 불가능하다(Create (insert)  Update  Delete 불가) 오직 읽기(조회)만 가능 
 
+update view_read30 set deptno = 10 ;
+select * from view_read30;
+
+-- 뷰의 활용 : TOP - N 조회하기
+-- ROWNUM ( 의사컬럼 : 직접 정의한 컬럼은 아니지만 사용할수 있는 컬럼 ) 
+-- 특징 : 조건절에 직접 사용시 반드시 1을 포함하는 조건식을 만들어야한다. ( 범위연산을 할수 없다 .) 
+--        일회성인 rownum의 컬럼에 별칭을 사용해 고정 컬럼처럼 사용할수 있다. ( 범위 연산 가능 ) 
+select * from emp;
+-- 입사일이 가장 오래된 5명의 사원을 조회 
+select * from emp order by hiredate asc;
+select * from emp where hiredate <= '81/05/01'; -- 단순 비교 ( 효율적인 방법이 아님 ) 
+
+DESC emp;
+
+select rownum, empno , ename , hiredate from emp
+order by hiredate asc; -- rownum 번호가 붙고 order by 로 정렬이 되기때문에 번호가 섞인다
+
+select rownum, empno , ename , hiredate 
+from emp where rownum <= 5 
+order by hiredate asc ;
+
+-- 뷰를 활용해 처음부터 입사일로 정렬 후 rownum을 이용해 정렬 후 번호가 붙을수 있도록 할 수있다. 
+
+create or replace view view_hire
+as
+select empno, ename , hiredate 
+from emp where hiredate !=( select hiredate from emp where ename = 'SMITH') 
+order by hiredate asc; 
+
+-- 컬럼 처럼 사용하기 위해서는 별칭을 부여해주어야한다. 별칭을 사용하지 않으면 일회성 / 별칭을 사용하게 되면 고정 컬럼 
+select rownum rm, v.* from view_hire v where rownum <= 4;
+
+create or replace view view_hiredate_rm
+as
+select rownum rm , empno , ename , hiredate
+from view_hire 
+order by hiredate;
+
+select * from view_hiredate_rm where rm between 2 and 7;
+
+-- 인라인 뷰 ( 일회성 )
+select rm , b.* 
+from ( select rownum rm , a.*
+    from ( select empno , ename ,hiredate from emp order by hiredate   ) a 
+) b where rm between 2 and 5;
+
+select empno , ename , hiredate 
+from ( select rownum rm , a.* 
+    from ( select empno , ename , hiredate from emp order by hiredate) a
+) where rm <= 5;
+
+select rownum , empno , ename , hiredate 
+from (
+    select empno , ename , hiredate 
+    from emp 
+    order by hiredate ) 
+where rownum <= 5;
+
+--------------------------------------------------------------------------------------------------
+
+-- 시퀀스 
+-- 자동으로 번호를 증가시키는 기능 수행 create , drop
+
+-- create sequence 시퀀스명 ( 옵션의 순서는 중요하지 않음 ) 
+-- start with : 시작 값 ( 기본 값 1 ) 
+-- increment by : 증가량 ( 기본 값 1 )
+-- maxvalue : 증가 시 최대값 ( 기본 값 10의 1027승 ) 
+-- minvalue : 감소 시 최소값 ( 기본 값 10의 -1027승 )
+
+-- 생성 
+create sequence dept_deptno_seq
+increment by 10 
+start with 10;
+
+-- 사용 방식  
+-- nextval : 실행할때마다 값 증가 
+-- currval : 현재 값을 확인하는 용도
+
+select dept_deptno_seq.nextval
+from dual;
+
+select dept_deptno_seq.currval
+from dual;
+
+create sequence emp_seq 
+start with 1
+increment by 1 
+maxvalue 1000;
+
+drop table emp01;
+
+create table emp01 
+as
+select empno , ename , hiredate from emp where 1 != 1;
+
+select * from emp01;
+
+insert into emp01
+values ( emp_seq.nextval , 'HONG' ,sysdate );
+
+create table product(
+    pid varchar(10),
+    pname varchar(10),
+    price number(5),
+    
+    constraint product_pid_pk primary key(pid)
+);
+
+create sequence idx_product_id
+start with 1000;
+
+insert into product
+values ('pid' || idx_product_id.nextval , 'mike' , 1000);
+
+insert into product
+values ('pid' || idx_product_id.nextval , '치즈' , 2000);
+
+select * from product;
+-- 시퀀스 삭제 
+drop sequence idx_product_id;
+
+
+-- 다른 사용자에게 권한 부여
+-- grant [ 객체 권한 종류 ]
+-- on  객체명 
+-- to 계정명 
+grant select  --, insert, update
+on emp
+to user01;
+-- 권한 회수 
+revoke select
+on emp
+from user01;
+
+----------------------------------------------------
+
+grant select 
+on emp
+to mrole3;
