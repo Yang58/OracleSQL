@@ -373,10 +373,29 @@ from emp e inner join salgrade s
 on e.sal between s.losal and s.hisal;
 
 -- out join -> outer join 
-select e.empno , e.ename   , e.mgr, m.empno  ,m.ename 
+-- 자신의 상사와 연결시킨 결과를 보고싶다. 
+select e.empno , e.ename   , e.mgr  ,m.ename 
 from emp e left outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
-on e.mgr = m.empno
-order by e.empno;
+ on e.mgr = m.empno
+ order by m.mgr;
+
+select e.empno , e.ename   , e.mgr  ,m.ename 
+from emp e left outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
+on m.mgr = e.empno;
+
+select e.ename , e.job , m.ename , m.job
+from emp e inner join emp m
+on m.job = e.job; 
+
+select e.* , m.*
+from emp e left outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
+on m.mgr = e.empno;
+
+select e.deptno , e.ename   , e.mgr  ,m.deptno
+from emp e left outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
+on e.empno = m.mgr;
+
+
 
 select e.empno , e.ename   , e.mgr, m.empno  ,m.ename 
 from emp e right outer join emp m   -- 데이터가 존재하는 쪽의 테이블 방향 ( join 기준 )
@@ -1548,3 +1567,224 @@ end;
 
 select 'ABCDEFG' , substr('ABCDEFG',3 , 2) from dual;
 
+---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+/*
+-------저장 서브프로그램----
+    한번만들어두면 언제든지 쓸수있음
+         1, 생성(create)
+         2, 실행(execute or exec)
+
+저장 프로시저의 매개변수 유형  : in , out , in out 
+    in       : 값을 전달받는 용도 
+    out     : 프로시저 내부의 실행 결과를 요청한 쪽으로 전달 
+    in out :  in + out 기능이 들어가있음 
+        
+        변수의 데이터 타입 앞에 작성 
+
+    * 프로시저의 형식 
+    create or replace procedure 프로시져명(매개변수)
+
+    is or as
+         변수 정의
+    begin
+          SQL
+         출력구문
+         조건문 , 반복문
+    end;
+     /
+*/
+create table emp01 -- 테이블의 복사 
+as
+select * from emp;
+
+create or replace procedure emp01_print -- 프로시저 생성 
+is
+    vempno number(10); -- 변수 선언 
+    vename varchar2(10);
+begin
+    vempno := 1111; -- 변수 초기화 
+    vename := 'Hong';
+
+    dbms_output.put_line(vempno || ' ' || vename); -- 출력문 
+end;
+/
+-- 프로시저의 실행  
+execute emp01_print; 
+
+create or replace procedure emp01_del -- 테이블의 데이터를 삭제하는 프로시저 
+is
+begin
+    delete from emp01;
+end;
+/
+
+exec emp01_del;
+
+select * from emp01;
+
+-- 매개변수를 받아서 사용하는 프로시저 
+create or replace procedure del_ename(vename emp01.ename%type) 
+is
+    
+begin
+    delete from emp01
+    where ename = vename;
+end;
+/
+-- SCOTT을 매개변수로 넘겨서 프로시저의 실행 -> begin 문이 SCOTT을 받아 delete 문을 실행한다. 
+exec del_ename('SCOTT'); 
+
+select * from emp01;
+
+create or replace procedure sel_empno  -- 프로시저 생성 
+(
+    vempno in emp.empno%type, -- begin 절에서 값을 초기화 해주어야됨 
+    vename out emp.ename%type, -- begin 절에서 emp 테이블의 컬럼의 값을 받아옴 
+    vsal out emp.sal%type,
+    vjob out emp.job%type
+)
+is  
+    -- 변수 선언 공간 
+    -- 위에서 out 타입으로 변수를 선언하게되면 이곳에서 변수를 선언 하지 않아도 된다. out으로 선언한 변수는 아래의 공간에서 사용가능 
+ 
+begin
+    select ename , sal , job 
+    into vename,vsal,vjob
+    from emp 
+    where empno = vempno;
+end;
+/
+
+--  바인드 변수는 out 타입으로 받아온 데이터를 지칭 
+--  exec sel_empno(7499,바인드 변수 1, 바인드 변수 2 , 바인드 변수 3 );
+-- 바인드 변수일때 number타입의 크기를 지정하면 안된다. 타입만 선언 // 기존의 데이터 타입보다 작으면안됨 
+-- 바인드 변수를 사용할때는 앞에 : (콜론) 을 붙여야한다. 
+
+variable var_ename varchar2(15);
+variable var_sal number;
+variable var_job varchar2(9);
+
+exec sel_empno (7499 ,:var_ename,: var_sal ,: var_job);
+
+-- print 출력 문 
+print var_ename;
+print var_sal;
+print var_job;
+
+drop table emp02;
+
+-- 사원 정보를 저장하는 저장 프로시저 만들기 ( 저장 데이터 : 사번 , 이름 , 직책 , 상사 , 부서 ) 
+-- 사원 정보는 매개변수를 사용해서 받아온다 .
+create table emp02
+as
+select empno , ename , job , mgr , deptno
+from emp 
+where 1 != 1;
+
+create or replace procedure pro_emp02
+(
+    vempno in emp02.empno%type,
+    vename in emp02.ename%type,
+    vjob in emp02.job%type,
+    vmgr in emp02.mgr%type,
+    vdeptno in emp02.deptno%type
+)
+is 
+begin
+    
+    insert into emp02
+    values (vempno , vename , vjob, vmgr , vdeptno);
+    
+end;
+/
+
+exec pro_emp02( 1111,'JJJJ', 'HI' , 2222, 10);
+select * from emp02;
+
+-----------------------------------------------------------------
+-- 저장 함수 
+-- 저장 함수와 저장 프로시저의 차이점 : return 값의 유무 
+-- 실행 순서 1. 생성( create )   2. 실행 (exec / execute ) 
+
+/* 저장 함수의 형식 
+    create or replace funcion 함수명  ( 매개변수 ) 
+        return 리턴할 값의 타입 ( 세미콜론 생략 ) 
+    is 
+        변수 정의 
+    begin
+    
+        SQL / 출력문 / 조건문 ... 
+    
+        return 리턴 값 ; (세미콜론 사용)     
+    end; 
+    /
+*/
+
+create or replace function cal_bouns (vempno emp.empno%type)
+    return number
+is
+    vsal number(7,2);
+begin
+    select sal 
+    into vsal 
+    from emp 
+    where empno = vempno ;
+    
+    return vsal * 200;
+end;
+/
+
+-- 함수를 호출할때 주의 할점 : exec 실행 전에 먼저  변수를 선언해야한다. 
+-- exec 바인드 변수 :=  함수명 ( 매개변수 ) 
+variable var_res number;
+exec :var_res := cal_bouns(7788); 
+print :var_res;
+
+-- 프로시저와 함수의 삭제 
+-- drop procedure 프로시저명
+-- drop function 함수명 
+
+-----------------------------------------------------------------
+/*  커서  : select 구문이 실행하는 결과를 가르킨다.
+    declare 
+        커서 : 뒤의 select 구문을 참조 
+        cursor 커서명 is  SQL 구문( select) ; 
+    begin
+        open 커서명 ;
+        
+        loop  / fectch 구문은 반복문과 함께 사용 
+            fectch 커서명  into 변수명 ; 테이블로 부터 값을 가져와 변수에 저장 ( 한번 실행 시 레코드 하나 가져옴 ) 
+            exit when 커서명%notfound -- 더이상 커서가 가르키는 값이 없다면 종료 
+        end loop;
+        
+        close 커서명;
+    end;
+    /
+*/
+
+declare 
+    cursor c1 is select * from emp;
+    vemp emp%rowtype;
+begin
+    open c1;
+    loop 
+        fetch c1  into vemp;
+        exit when c1%NOTFOUND;
+        dbms_output.put_line(vemp.empno || '   ' || vemp.ename);  
+    end loop;
+    close c1;
+end;
+/
+
+-- for 문 이용  cursor  간소화하여 사용 가능 
+declare 
+    cursor c1 is select * from dept;
+    vdept dept%rowtype ;
+begin
+    for vdept in c1 loop
+        exit when c1%notfound;
+        dbms_output.put_line(vdept.deptno || '   ' || vdept.dname || '   ' || vdept.loc );  
+    end loop;
+end;
+/
